@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <meta charset="utf8">
+
+   <title>Custom Webex Page</title>
+   <link rel="stylesheet" href="https://code.s4d.io/widget-recents/production/main.css">
+   <link rel="stylesheet" href="https://code.s4d.io/widget-space/production/main.css">
+
+   <script src="https://code.s4d.io/widget-space/production/bundle.js"></script>
+   <script src="https://code.s4d.io/widget-recents/production/bundle.js"></script>
+
+   <!-- Add Toastr library for notifications -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+   <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+   <style>
+      html {
+         height: 100%;
+      }
+
+      body {
+         font-family: 'Arial', sans-serif;
+         background-image: url(background.jpg);
+         background-position: center;
+         background-size: cover;
+         margin: 0;
+         padding: 0;
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         min-height: 100vh;
+      }
+
+      #access-token-form {
+         background-color: #ffffff;
+         color: #4c4e4d;
+         padding: 30px;
+         text-align: left;
+         border-radius: 15px;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+      }
+
+      #access-token-form label {
+         font-size: 15px;
+      }
+
+      #access-token {
+         margin-top: 20px;
+         width: 300px;
+         padding: 10px;
+         font-size: 14px;
+      }
+
+      #widgets-container {
+         display: none;
+         padding: 20px;
+         text-align: center;
+      }
+
+      #recents {
+         width: 300px;
+         height: 500px;
+         float: left;
+         background-color: #ffffff;
+         border: 1px solid #ddd;
+         border-radius: 5px;
+         margin-right: 20px;
+      }
+
+      #space {
+         width: 750px;
+         height: 500px;
+         background-color: #ffffff; 
+         border: 1px solid #ddd; 
+         border-radius: 5px;
+      }
+
+      button {
+         padding: 8px;
+         outline: none;
+         background-color: lightblue;
+         border: none;
+         border-radius: 5px;
+         margin-top: 20px;
+         cursor: pointer;
+      }
+
+      button:hover {
+            background-color: #c7c8c7;
+            transition: 0.1s;
+      }
+
+   </style>
+</head>
+
+<body>
+
+   <!-- Access Token Input Form -->
+   <div id="access-token-form">
+      <label for="access-token"><b>Enter Your Webex Teams Access Token:</b></label>
+      <br>
+      <input type="text" id="access-token" placeholder="Paste your token here">
+      <br>
+      <button style="margin-left: 125px;" onclick="setAccessToken()">Submit</button>
+   </div>
+
+   <!-- Recents and Space Widgets -->
+   <div id="widgets-container">
+      <div id="recents"></div>
+      <div id="space"></div>
+   </div>
+
+   <script>
+      function setAccessToken() {
+         const accessTokenInput = document.getElementById('access-token');
+         const token = accessTokenInput.value.trim();
+
+         if (token) {
+            hideAccessTokenForm();
+            initializeWidgets(token);
+         } else {
+            toastr.error('Please enter a valid access token.');
+         }
+      }
+
+      function hideAccessTokenForm() {
+         const accessTokenForm = document.getElementById('access-token-form');
+         accessTokenForm.style.display = 'none';
+
+         const widgetsContainer = document.getElementById('widgets-container');
+         widgetsContainer.style.display = 'block';
+      }
+
+      function initializeWidgets(token) {
+         // Init the Recents widget
+         const recentsElement = document.getElementById('recents');
+         webex.widget(recentsElement).recentsWidget({
+            accessToken: token,
+            onEvent: callback
+         });
+
+         function callback(type, event) {
+            if (type !== "rooms:selected") {
+               console.log("new event: " + type);
+               toastr.info('Event Received', type);
+               return;
+            }
+
+            let selectedRoom = event.data.id;
+            console.log("room " + selectedRoom + " was selected");
+
+            let spaceElement = document.getElementById('space');
+
+            // Remove existing 'Space' widget (if any)
+            try {
+               webex.widget(spaceElement).remove().then(function (removed) {
+                  if (removed) {
+                     console.log('removed!');
+                  }
+               });
+            } catch (err) {
+               console.error('could not remove Space widget :-(, continuing...');
+            }
+
+            // Inject a new 'Space' widget with the selected room
+            webex.widget(spaceElement).spaceWidget({
+               accessToken: token,
+               destinationType: "spaceId",
+               destinationId: selectedRoom,
+               activities: { "files": true, "meet": true, "message": true, "people": true },
+               initialActivity: 'message',
+               secondaryActivitiesFullWidth: false
+            });
+         }
+      }
+   </script>
+
+</body>
+
+</html>
